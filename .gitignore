@@ -6,6 +6,9 @@
 /vendor
 .env
 .env.backup
+!.env.example
+!site1/.env.example
+!site2/.env.example
 !site1/docker/php/.env.server1
 !site2/docker/php/.env.server2
 .phpunit.result.cache
