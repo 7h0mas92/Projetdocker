@@ -1,0 +1,98 @@
+services:
+    db:
+        image: mysql:8.0
+        container_name: mysql_db
+        restart: unless-stopped
+        ports:
+            - "3306:3306"
+        environment:
+            MYSQL_DATABASE: laravel_multi_instance
+            MYSQL_ROOT_PASSWORD: root_password
+            MYSQL_USER: laravel_user
+            MYSQL_PASSWORD: laravel_password
+        volumes:
+            - dbdata:/var/lib/mysql
+
+    app_server1:
+        build:
+            context: .
+            dockerfile: dockerfile_php_fpm
+        container_name: app_server1
+        volumes:
+            - ./site1:/var/www/html
+        env_file:
+            - .env
+        environment:
+            APP_SERVER_NAME: Serveur 1
+            CONTAINER_NAME: app_server1
+            DB_HOST: db
+            DB_DATABASE: laravel_multi_instance
+            DB_USERNAME: laravel_user
+            DB_PASSWORD: laravel_password
+        depends_on:
+            - db
+
+    web_server1:
+        image: nginx:stable-alpine
+        container_name: web_server1
+        ports:
+            - "8080:80"
+        volumes:
+            - ./site1:/var/www/html
+            - ./site1/docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+        depends_on:
+            - app_server1
+
+    app_server2:
+        build:
+            context: .
+            dockerfile: dockerfile_php_fpm
+        container_name: app_server2
+        volumes:
+            - ./site2:/var/www/html
+        env_file:
+            - .env
+        environment:
+            APP_SERVER_NAME: "Serveur 2"
+            CONTAINER_NAME: app_server2
+            DB_HOST: db
+            DB_DATABASE: laravel_multi_instance
+            DB_USERNAME: laravel_user
+            DB_PASSWORD: laravel_password
+        depends_on:
+            - db
+
+    web_server2:
+        image: nginx:stable-alpine
+        container_name: web_server2
+        ports:
+            - "8081:80"
+        volumes:
+            - ./site2:/var/www/html
+            - ./site2/docker/nginx/default_s2.conf/default.conf:/etc/nginx/conf.d/default.conf
+        depends_on:
+            - app_server2
+
+    phpmyadmin:
+        image: phpmyadmin/phpmyadmin
+        platform: linux/amd64
+        container_name: phpmyadmin
+        ports:
+            - "8082:80"
+        environment:
+            PMA_HOST: db
+            PMA_PORT: 3306
+            MYSQL_ROOT_PASSWORD: root_password
+        depends_on:
+            - db
+
+    mailhog:
+        image: mailhog/mailhog:latest # Utilisation de l'image officielle MailHog
+        hostname: mailhog # Nom du conteneur sur le réseau Docker (important pour l'app)
+        container_name: mailhog
+        ports:
+            - "1025:1025" # Port SMTP pour l'envoi d'e-mails par l'application
+            - "8025:8025" # Port HTTP pour l'interface web de consultation des e-mails
+
+volumes:
+    dbdata:
